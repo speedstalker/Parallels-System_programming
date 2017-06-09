@@ -1,0 +1,2 @@
+C:\Programming\Sys_prog\test_orig\dlls>
+"C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\symchk.exe" C:\Programming\Sys_prog\test_orig\dlls\wsock32.dll /oc C:\Programming\Sys_prog\test_orig\dlls
