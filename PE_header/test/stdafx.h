@@ -5,6 +5,7 @@
 
 #pragma once
 
+
 #include "targetver.h"
 
 #include <stdio.h>
@@ -13,8 +14,11 @@
 
 
 // TODO: Установите здесь ссылки на дополнительные заголовки, требующиеся для программы
+#include <windows.h>
+
 #include <assert.h>
 
+#include <iostream>
 #include <string>
 #include <unordered_map>
 
@@ -22,6 +26,8 @@
 #include "Callback.h"
 
 #include "my_dia2dump.h"
+
+#include "pe_header.h"
 
 #include "pdata.h"
 #include "pdb.h"

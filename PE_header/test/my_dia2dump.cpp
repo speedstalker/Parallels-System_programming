@@ -1,3 +1,5 @@
+#include "my_dia2dump.h"
+
 #include "stdafx.h"
 
 
@@ -50,10 +52,11 @@ const wchar_t * const rgTags[] =
 
 DWORD g_dwMachineType = CV_CFL_80386;
 
+
 ////////////////////////////////////////////////////////////
 // Create an IDiaData source and open a PDB file
 //
-bool LoadAndValidateDataFromPdb(
+bool LoadAndValidateDataFromPdbFile (
     const wchar_t    *szFilename,
     IDiaDataSource  **ppSource,
     IDiaSession     **ppSession,
@@ -157,19 +160,6 @@ bool LoadAndValidateDataFromPdb(
         }
     }
 
-    /*
-    GUID guid = GUID_NULL;
-    if ((*ppGlobal)->get_guid(&guid) == S_OK)
-    {
-        LPOLESTR lp = NULL;
-
-        if (StringFromCLSID(guid, &lp) == S_OK)
-            CoTaskMemFree(lp);
-    }
-    printf ("GUID: {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n", guid.Data1, guid.Data2, guid.Data3,
-        guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
-    */
-
     return true;
 }
 
@@ -241,7 +231,7 @@ void PrintPublicSymbol(IDiaSymbol *pSymbol)
 }
 
 
-void AddPublicSymbolToMap(IDiaSymbol *pSymbol, Name_addr_map_t* pFuncAddrNameMap) 
+void AddSymbolToMap(IDiaSymbol *pSymbol, Name_addr_map_t* pFuncAddrNameMap) 
 {
     DWORD dwSymTag;
     DWORD dwRVA;
@@ -336,7 +326,7 @@ bool DumpAllPublicsToMap(IDiaSymbol *pGlobal, Name_addr_map_t* pFuncAddrNameMap)
 
     while (SUCCEEDED(pEnumSymbols->Next(1, &pSymbol, &celt)) && (celt == 1)) {
         // PrintPublicSymbol(pSymbol);
-        AddPublicSymbolToMap (pSymbol, pFuncAddrNameMap);
+        AddSymbolToMap (pSymbol, pFuncAddrNameMap);
 
         pSymbol->Release();
     }
@@ -346,17 +336,64 @@ bool DumpAllPublicsToMap(IDiaSymbol *pGlobal, Name_addr_map_t* pFuncAddrNameMap)
     return true;
 }
 
-/* void Cleanup()
+////////////////////////////////////////////////////////////
+// Dump all the global symbols - SymTagFunction.
+//  don't dump SymTagThunk and SymTagData
+//
+bool DumpAllGlobalsToMap(IDiaSymbol *pGlobal, Name_addr_map_t* pFuncAddrNameMap)
 {
-    if (g_pGlobalSymbol) {
-        g_pGlobalSymbol->Release();
-        g_pGlobalSymbol = NULL;
+  IDiaEnumSymbols *pEnumSymbols;
+  IDiaSymbol *pSymbol;
+  // enum SymTagEnum dwSymTags[] = { SymTagFunction, SymTagThunk, SymTagData };
+  enum SymTagEnum dwSymTags[] = { SymTagFunction };
+
+  ULONG celt = 0;
+
+  for (size_t i = 0; i < _countof(dwSymTags); i++, pEnumSymbols = NULL) {
+    if (SUCCEEDED(pGlobal->findChildren(dwSymTags[i], NULL, nsNone, &pEnumSymbols))) {
+      while (SUCCEEDED(pEnumSymbols->Next(1, &pSymbol, &celt)) && (celt == 1)) {
+        // PrintGlobalSymbol(pSymbol);
+        AddSymbolToMap (pSymbol, pFuncAddrNameMap);
+
+        pSymbol->Release();
+      }
+
+      pEnumSymbols->Release();
     }
 
-    if (g_pDiaSession) {
-        g_pDiaSession->Release();
-        g_pDiaSession = NULL;
+    else {
+      // wprintf(L"ERROR - DumpAllGlobals() returned no symbols\n");
+
+      return false;
+    }
+  }
+
+  // putwchar(L'\n');
+
+  return true;
+}
+
+int CleanupSymbols (IDiaSymbol** pg_pGlobalSymbol, IDiaSession** pg_pDiaSession)
+{
+if ((pg_pGlobalSymbol == NULL) || (pg_pDiaSession == NULL))
+    {
+    SetLastError (ERROR_BAD_ARGUMENTS);
+    return ERROR_BAD_ARGUMENTS;
     }
 
-    CoUninitialize();
-} */
+if (*pg_pGlobalSymbol)
+    {
+    (*pg_pGlobalSymbol)->Release ();
+    *pg_pGlobalSymbol = NULL;
+    }
+
+if (*pg_pDiaSession)
+    {
+    (*pg_pDiaSession)->Release ();
+    *pg_pDiaSession = NULL;
+    }
+
+CoUninitialize ();
+
+return 0;
+}
